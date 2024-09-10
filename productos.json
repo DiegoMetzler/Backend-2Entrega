@@ -1,0 +1,44 @@
+[
+  {
+    "id": 1,
+    "title": "Termo de acero rojo",
+    "description": "Termo para tomar mate",
+    "code": "TERMO1",
+    "price": 399.99,
+    "status": true,
+    "stock": 272,
+    "category": "Mate",
+    "thumbnails": [
+      "url1",
+      "url2"
+    ]
+  },
+  {
+    "id": 2,
+    "title": "Termo de acero azul",
+    "description": "Termo para tomar mate",
+    "code": "TERMO2",
+    "price": 479.99,
+    "status": true,
+    "stock": 50,
+    "category": "Mate",
+    "thumbnails": [
+      "url3",
+      "url4"
+    ]
+  },
+  {
+    "id": 3,
+    "title": "Termo de acero rosa",
+    "description": "Termo para tomar mate",
+    "code": "TERMO3",
+    "price": 599.99,
+    "status": true,
+    "stock": 100,
+    "category": "Mate",
+    "thumbnails": [
+      "url1",
+      "url2"
+    ]
+  }
+]
