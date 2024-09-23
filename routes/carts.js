@@ -1,5 +1,3 @@
-// routes/carts.js
-
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
@@ -7,7 +5,7 @@ const router = express.Router();
 
 const cartsFilePath = path.join(__dirname, '../data/carrito.json');
 
-// Función para leer carritos desde el archivo
+// Función para leer carritos
 const readCarts = () => {
     try {
         if (fs.existsSync(cartsFilePath)) {
@@ -22,7 +20,7 @@ const readCarts = () => {
     }
 };
 
-// Función para escribir carritos al archivo
+// Función para escribir carritos
 const writeCarts = (data) => {
     try {
         fs.writeFileSync(cartsFilePath, JSON.stringify(data, null, 2));
@@ -31,7 +29,7 @@ const writeCarts = (data) => {
     }
 };
 
-// Ruta POST /api/carts/ - Crear un nuevo carrito
+// Ruta POST - Crear un nuevo carrito
 router.post('/', (req, res) => {
     const carts = readCarts();
     const newId = carts.length ? Math.max(...carts.map(c => c.id)) + 1 : 1;
@@ -46,7 +44,7 @@ router.post('/', (req, res) => {
     res.status(201).json(newCart);
 });
 
-// Ruta GET /api/carts/:cid - Listar productos de un carrito por ID
+// Ruta GET - Listar productos de un carrito por ID
 router.get('/:cid', (req, res) => {
     const { cid } = req.params;
     const carts = readCarts();
@@ -59,7 +57,7 @@ router.get('/:cid', (req, res) => {
     }
 });
 
-// Ruta POST /api/carts/:cid/product/:pid - Agregar un producto al carrito
+// Ruta POST - Agregar un producto al carrito
 router.post('/:cid/product/:pid', (req, res) => {
     const { cid, pid } = req.params;
     const { quantity = 1 } = req.body;
@@ -74,10 +72,8 @@ router.post('/:cid/product/:pid', (req, res) => {
     const productInCartIndex = carts[cartIndex].products.findIndex(p => p.product == pid);
 
     if (productInCartIndex !== -1) {
-        // Si el producto ya existe en el carrito, incrementa la cantidad
         carts[cartIndex].products[productInCartIndex].quantity += quantity;
     } else {
-        // Si el producto no existe, agrégalo al carrito
         carts[cartIndex].products.push({ product: parseInt(pid), quantity });
     }
 

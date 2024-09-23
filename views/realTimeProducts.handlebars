@@ -45,7 +45,7 @@
     <p>No hay productos disponibles.</p>
 {{/if}}
 
-<!-- Socket.io Chat (Opcional) -->
+
 <h2>Chat en Tiempo Real</h2>
 <div id="messages"></div>
 
@@ -58,7 +58,7 @@
 <script>
     const socket = io();
 
-    // Manejar mensajes del chat
+    
     const form = document.getElementById('message-form');
     const input = document.getElementById('message-input');
     const messagesDiv = document.getElementById('messages');
@@ -76,10 +76,8 @@
         messagesDiv.appendChild(p);
     });
 
-    // Manejar actualizaciones de productos en tiempo real
     const productsTableBody = document.querySelector('#products-table tbody');
 
-    // Evento para agregar un nuevo producto
     socket.on('productAdded', (product) => {
         const row = document.createElement('tr');
         row.id = `product-${product.id}`;
@@ -99,7 +97,6 @@
         productsTableBody.appendChild(row);
     });
 
-    // Evento para eliminar un producto
     socket.on('productDeleted', (productId) => {
         const row = document.getElementById(`product-${productId}`);
         if (row) {

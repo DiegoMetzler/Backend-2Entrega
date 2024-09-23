@@ -1,5 +1,3 @@
-// routes/products.js
-
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
@@ -7,7 +5,7 @@ const router = express.Router();
 
 const productFilePath = path.join(__dirname, '../data/productos.json');
 
-// Función para leer productos desde el archivo
+// Función para leer productos
 const readProducts = () => {
     try {
         if (fs.existsSync(productFilePath)) {
@@ -22,7 +20,7 @@ const readProducts = () => {
     }
 };
 
-// Función para escribir productos al archivo
+// Función para escribir productos
 const writeProducts = (data) => {
     try {
         fs.writeFileSync(productFilePath, JSON.stringify(data, null, 2));
@@ -31,13 +29,13 @@ const writeProducts = (data) => {
     }
 };
 
-// Ruta GET /api/products/ - Listar todos los productos
+// Ruta GET - Listar todos los productos
 router.get('/', (req, res) => {
     const products = readProducts();
     res.json(products);
 });
 
-// Ruta GET /api/products/:pid - Obtener un producto por ID
+// Ruta GET - Obtener un producto por ID
 router.get('/:pid', (req, res) => {
     const { pid } = req.params;
     const products = readProducts();
@@ -49,11 +47,10 @@ router.get('/:pid', (req, res) => {
     }
 });
 
-// Ruta POST /api/products/ - Agregar un nuevo producto
+// Ruta POST - Agregar un nuevo producto
 router.post('/', (req, res) => {
     const { title, description, code, price, status = true, stock, category, thumbnails } = req.body;
 
-    // Validación de campos obligatorios
     if (!title || !description || !code || price === undefined || stock === undefined || !category) {
         return res.status(400).json({ error: 'Faltan campos obligatorios' });
     }
@@ -76,7 +73,6 @@ router.post('/', (req, res) => {
     products.push(newProduct);
     writeProducts(products);
 
-    // Emitir evento a través de Socket.io
     if (req.io) {
         req.io.emit('productAdded', newProduct);
     }
@@ -84,7 +80,7 @@ router.post('/', (req, res) => {
     res.status(201).json(newProduct);
 });
 
-// Ruta PUT /api/products/:pid - Actualizar un producto por ID
+// Ruta PUT - Actualizar un producto por ID
 router.put('/:pid', (req, res) => {
     const { pid } = req.params;
     const { title, description, code, price, status, stock, category, thumbnails } = req.body;
@@ -114,7 +110,7 @@ router.put('/:pid', (req, res) => {
     res.json(updatedProduct);
 });
 
-// Ruta DELETE /api/products/:pid - Eliminar un producto por ID
+// Ruta DELETE - Eliminar un producto por ID
 router.delete('/:pid', (req, res) => {
     const { pid } = req.params;
     let products = readProducts();
@@ -125,7 +121,6 @@ router.delete('/:pid', (req, res) => {
     products = products.filter(p => p.id != pid);
     writeProducts(products);
 
-    // Emitir evento a través de Socket.io
     if (req.io) {
         req.io.emit('productDeleted', pid);
     }

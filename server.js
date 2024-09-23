@@ -1,5 +1,3 @@
-// server.js
-
 const express = require('express');
 const path = require('path');
 const http = require('http'); // Necesario para Socket.io
@@ -85,7 +83,6 @@ app.get('/realtimeproducts', (req, res) => {
 io.on('connection', (socket) => {
     console.log('Nuevo cliente conectado');
 
-    // Puedes definir eventos aquí
     socket.on('mensaje', (data) => {
         console.log('Mensaje recibido:', data);
         // Emite el mensaje a todos los clientes
@@ -97,7 +94,7 @@ io.on('connection', (socket) => {
     });
 });
 
-// Middleware para manejar errores (opcional)
+// Middleware para manejar errores
 app.use((err, req, res, next) => {
     console.error(err.stack);
     res.status(500).json({ error: 'Algo salió mal!' });
