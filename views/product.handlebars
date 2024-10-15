@@ -1,0 +1,21 @@
+<h2>{{product.title}}</h2>
+
+<div class="product-details">
+    <img src="{{product.thumbnails.[0]}}" alt="{{product.title}}" width="300">
+    <div class="details">
+        <p><strong>Descripción:</strong> {{product.description}}</p>
+        <p><strong>Código:</strong> {{product.code}}</p>
+        <p><strong>Precio:</strong> ${{product.price}}</p>
+        <p><strong>Categoría:</strong> {{product.category}}</p>
+        <p><strong>Estado:</strong> {{#if product.status}} Disponible {{else}} No Disponible {{/if}}</p>
+        <p><strong>Stock:</strong> {{product.stock}} unidades</p>
+    </div>
+</div>
+
+<form action="/api/carts/add-to-cart/{{product._id}}" method="POST">
+    <label for="quantity">Cantidad:</label>
+    <input type="number" id="quantity" name="quantity" value="1" min="1" max="{{product.stock}}" required>
+    <button type="submit">Agregar al Carrito</button>
+</form>
+
+<a href="/products">Volver a Productos</a>

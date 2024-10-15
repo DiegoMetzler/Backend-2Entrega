@@ -1,131 +1,160 @@
 const express = require('express');
-const fs = require('fs');
-const path = require('path');
 const router = express.Router();
+const Product = require('../models/Product');
 
-const productFilePath = path.join(__dirname, '../data/productos.json');
-
-// Función para leer productos
-const readProducts = () => {
+// GET /api/products
+router.get('/', async (req, res) => {
     try {
-        if (fs.existsSync(productFilePath)) {
-            const data = fs.readFileSync(productFilePath, 'utf-8');
-            return data ? JSON.parse(data) : [];
-        } else {
-            return [];
+        const { limit = 10, page = 1, sort, query } = req.query;
+
+        const filter = {};
+        if (query) {
+            filter.title = { $regex: query, $options: 'i' };
         }
-    } catch (error) {
-        console.error("Error leyendo productos:", error);
-        return [];
-    }
-};
 
-// Función para escribir productos
-const writeProducts = (data) => {
+        let sortOption = {};
+        if (sort === 'asc') {
+            sortOption.price = 1;
+        } else if (sort === 'desc') {
+            sortOption.price = -1;
+        }
+
+        const options = {
+            page: parseInt(page),
+            limit: parseInt(limit),
+            sort: sortOption,
+            lean: true
+        };
+
+
+        const totalProducts = await Product.countDocuments(filter);
+        const totalPages = Math.ceil(totalProducts / options.limit);
+        const hasPrevPage = options.page > 1;
+        const hasNextPage = options.page < totalPages;
+        const prevPage = hasPrevPage ? options.page - 1 : null;
+        const nextPage = hasNextPage ? options.page + 1 : null;
+        const products = await Product.find(filter)
+            .sort(sortOption)
+            .skip((options.page - 1) * options.limit)
+            .limit(options.limit)
+            .lean();
+
+        const response = {
+            status: 'success',
+            payload: products,
+            totalPages,
+            prevPage,
+            nextPage,
+            page: options.page,
+            hasPrevPage,
+            hasNextPage,
+            prevLink: hasPrevPage ? `/api/products?limit=${options.limit}&page=${prevPage}${sort ? `&sort=${sort}` : ''}${query ? `&query=${query}` : ''}` : null,
+            nextLink: hasNextPage ? `/api/products?limit=${options.limit}&page=${nextPage}${sort ? `&sort=${sort}` : ''}${query ? `&query=${query}` : ''}` : null
+        };
+
+        res.json(response);
+    } catch (error) {
+        console.error('Error en GET /api/products:', error);
+        res.status(500).json({ status: 'error', payload: null, message: 'Error interno del servidor' });
+    }
+});
+
+// GET /api/products/:pid
+router.get('/:pid', async (req, res) => {
     try {
-        fs.writeFileSync(productFilePath, JSON.stringify(data, null, 2));
+        const product = await Product.findById(req.params.pid).lean();
+        if (!product) {
+            return res.status(404).json({ status: 'error', payload: null, message: 'Producto no encontrado' });
+        }
+        res.json({ status: 'success', payload: product });
     } catch (error) {
-        console.error("Error escribiendo productos:", error);
-    }
-};
-
-// Ruta GET - Listar todos los productos
-router.get('/', (req, res) => {
-    const products = readProducts();
-    res.json(products);
-});
-
-// Ruta GET - Obtener un producto por ID
-router.get('/:pid', (req, res) => {
-    const { pid } = req.params;
-    const products = readProducts();
-    const product = products.find(p => p.id == pid);
-    if (product) {
-        res.json(product);
-    } else {
-        res.status(404).json({ error: 'Producto no encontrado' });
+        console.error('Error en GET /api/products/:pid:', error);
+        res.status(500).json({ status: 'error', payload: null, message: 'Error interno del servidor' });
     }
 });
 
-// Ruta POST - Agregar un nuevo producto
-router.post('/', (req, res) => {
-    const { title, description, code, price, status = true, stock, category, thumbnails } = req.body;
+// POST /api/products
+router.post('/', async (req, res) => {
+    try {
+        const { title, description, code, price, stock, category, thumbnails } = req.body;
+      
+        if (!title || !description || !code || !price || !stock || !category) {
+            return res.status(400).json({ status: 'error', payload: null, message: 'Faltan campos requeridos' });
+        }
 
-    if (!title || !description || !code || price === undefined || stock === undefined || !category) {
-        return res.status(400).json({ error: 'Faltan campos obligatorios' });
+        const existingProduct = await Product.findOne({ code });
+        if (existingProduct) {
+            return res.status(400).json({ status: 'error', payload: null, message: 'El código del producto ya existe' });
+        }
+
+        const newProduct = new Product({
+            title,
+            description,
+            code,
+            price,
+            stock,
+            category,
+            thumbnails: thumbnails || []
+        });
+
+        await newProduct.save();
+
+        
+        if (req.io) {
+            req.io.emit('productAdded', newProduct);
+        }
+
+        res.status(201).json({ status: 'success', payload: newProduct });
+    } catch (error) {
+        console.error('Error en POST /api/products:', error);
+        res.status(500).json({ status: 'error', payload: null, message: 'Error interno del servidor' });
     }
-
-    const products = readProducts();
-    const newId = products.length ? Math.max(...products.map(p => p.id)) + 1 : 1;
-
-    const newProduct = {
-        id: newId,
-        title,
-        description,
-        code,
-        price,
-        status,
-        stock,
-        category,
-        thumbnails: thumbnails || []
-    };
-
-    products.push(newProduct);
-    writeProducts(products);
-
-    if (req.io) {
-        req.io.emit('productAdded', newProduct);
-    }
-
-    res.status(201).json(newProduct);
 });
 
-// Ruta PUT - Actualizar un producto por ID
-router.put('/:pid', (req, res) => {
-    const { pid } = req.params;
-    const { title, description, code, price, status, stock, category, thumbnails } = req.body;
+// PUT /api/products/:pid
+router.put('/:pid', async (req, res) => {
+    try {
+        const { pid } = req.params;
+        const updateData = req.body;
 
-    const products = readProducts();
-    const productIndex = products.findIndex(p => p.id == pid);
+        delete updateData.id;
 
-    if (productIndex === -1) {
-        return res.status(404).json({ error: 'Producto no encontrado' });
+        const updatedProduct = await Product.findByIdAndUpdate(pid, updateData, { new: true, runValidators: true }).lean();
+
+        if (!updatedProduct) {
+            return res.status(404).json({ status: 'error', payload: null, message: 'Producto no encontrado' });
+        }
+
+        if (req.io) {
+            req.io.emit('productUpdated', updatedProduct);
+        }
+
+        res.json({ status: 'success', payload: updatedProduct });
+    } catch (error) {
+        console.error('Error en PUT /api/products/:pid:', error);
+        res.status(500).json({ status: 'error', payload: null, message: 'Error interno del servidor' });
     }
-
-    // No se permite actualizar el ID
-    const updatedProduct = {
-        ...products[productIndex],
-        title: title !== undefined ? title : products[productIndex].title,
-        description: description !== undefined ? description : products[productIndex].description,
-        code: code !== undefined ? code : products[productIndex].code,
-        price: price !== undefined ? price : products[productIndex].price,
-        status: status !== undefined ? status : products[productIndex].status,
-        stock: stock !== undefined ? stock : products[productIndex].stock,
-        category: category !== undefined ? category : products[productIndex].category,
-        thumbnails: thumbnails !== undefined ? thumbnails : products[productIndex].thumbnails
-    };
-
-    products[productIndex] = updatedProduct;
-    writeProducts(products);
-    res.json(updatedProduct);
 });
 
-// Ruta DELETE - Eliminar un producto por ID
-router.delete('/:pid', (req, res) => {
-    const { pid } = req.params;
-    let products = readProducts();
-    const product = products.find(p => p.id == pid);
-    if (!product) {
-        return res.status(404).json({ error: 'Producto no encontrado' });
-    }
-    products = products.filter(p => p.id != pid);
-    writeProducts(products);
+// DELETE /api/products/:pid
+router.delete('/:pid', async (req, res) => {
+    try {
+        const { pid } = req.params;
+        const deletedProduct = await Product.findByIdAndDelete(pid).lean();
 
-    if (req.io) {
-        req.io.emit('productDeleted', pid);
-    }
+        if (!deletedProduct) {
+            return res.status(404).json({ status: 'error', payload: null, message: 'Producto no encontrado' });
+        }
 
-    res.status(204).end();
+        if (req.io) {
+            req.io.emit('productDeleted', { id: pid });
+        }
+
+        res.json({ status: 'success', payload: deletedProduct });
+    } catch (error) {
+        console.error('Error en DELETE /api/products/:pid:', error);
+        res.status(500).json({ status: 'error', payload: null, message: 'Error interno del servidor' });
+    }
 });
 
 module.exports = router;

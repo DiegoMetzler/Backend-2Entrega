@@ -1,0 +1,47 @@
+<h2>Carrito: {{cartId}}</h2>
+
+{{#if products.length}}
+    <table>
+        <thead>
+            <tr>
+                <th>Imagen</th>
+                <th>Título</th>
+                <th>Descripción</th>
+                <th>Precio</th>
+                <th>Categoría</th>
+                <th>Cantidad</th>
+                <th>Total</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{#each products}}
+                <tr>
+                    <td><img src="{{this.thumbnails.[0]}}" alt="{{this.title}}" width="100"></td>
+                    <td>{{this.title}}</td>
+                    <td>{{this.description}}</td>
+                    <td>${{this.price}}</td>
+                    <td>{{this.category}}</td>
+                    <td>{{this.quantity}}</td>
+                    <td>${{this.total}}</td>
+                    <td>
+                        <!-- Formulario para eliminar el producto del carrito -->
+                        <form action="/api/carts/{{../cartId}}/products/{{this.id}}?_method=DELETE" method="POST" style="display:inline;">
+                            <button type="submit">Eliminar</button>
+                        </form>
+
+                        <!-- Formulario para actualizar la cantidad del producto -->
+                        <form action="/api/carts/{{../cartId}}/products/{{this.id}}?_method=PUT" method="POST" style="display:inline;">
+                            <input type="number" name="quantity" value="{{this.quantity}}" min="1" max="{{this.stock}}" required>
+                            <button type="submit">Actualizar</button>
+                        </form>
+                    </td>
+                </tr>
+            {{/each}}
+        </tbody>
+    </table>
+{{else}}
+    <p>El carrito está vacío.</p>
+{{/if}}
+
+<a href="/products">Volver a Productos</a>
